@@ -1,4 +1,4 @@
-package main
+package rocketsurgery
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func walkDeclList(v Visitor, list []ast.Decl) {
 	}
 }
 
-// WalkToReplace traverses an AST in depth-first order: It starts by calling
+// WalkReplace traverses an AST in depth-first order: It starts by calling
 // v.Visit(node); node must not be nil. If the visitor w returned by
 // v.Visit(node) is not nil, walkToReplace is invoked recursively with visitor
 // w for each of the non-nil children of node, followed by a call of

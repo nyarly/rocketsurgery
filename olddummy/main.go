@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 
+	rs "github.com/nyarly/rocketsurgery"
 	"github.com/pkg/errors"
 )
 
@@ -53,19 +54,19 @@ func main() {
 		outdir = path.Join(wd, *outdirrel)
 	}
 
-	var layout layout
+	var layout rs.Transformer
 	switch *layoutkind {
 	default:
 		log.Fatalf("Unrecognized layout kind: %q - try 'default' or 'flat'", *layoutkind)
 	case "default":
-		gopath := getGopath()
-		importBase, err := importPath(outdir, gopath)
+		gopath := rs.GetGopath()
+		importBase, err := rs.ImportPath(outdir, gopath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		layout = deflayout{targetDir: importBase}
+		layout = deflayout{targetDir: importBase, tmpl: fullAST()}
 	case "flat":
-		layout = flat{}
+		layout = flat{tmpl: fullAST()}
 	}
 
 	if len(os.Args) < 2 {
@@ -88,7 +89,15 @@ func main() {
 	}
 }
 
-func process(filename string, source io.Reader, layout layout) (files, error) {
+func fullAST() rs.ASTTemplate {
+	astfile, err := ASTTemplates.Open("full.go")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return LoadAST("full.go", astfile)
+}
+
+func process(filename string, source io.Reader, layout rs.Transformer) (rs.Files, error) {
 	f, err := parseFile(filename, source)
 	if err != nil {
 		return nil, errors.Wrapf(err, "parsing input %q", filename)
@@ -123,16 +132,7 @@ func parseFile(fname string, source io.Reader) (ast.Node, error) {
 	return f, nil
 }
 
-func extractContext(f ast.Node) (*sourceContext, error) {
-	context := &sourceContext{}
-	visitor := &parseVisitor{src: context}
-
-	ast.Walk(visitor, f)
-
-	return context, context.validate()
-}
-
-func splat(dir string, tree files) error {
+func splat(dir string, tree rs.Files) error {
 	for fn, buf := range tree {
 		if err := splatFile(path.Join(dir, fn), buf); err != nil {
 			return err

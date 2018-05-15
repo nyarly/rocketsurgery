@@ -1,4 +1,4 @@
-package main
+package rocketsurgery
 
 import (
 	"bytes"
@@ -13,29 +13,21 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
+	. "github.com/nyarly/rocketsurgery/shortcuts"
 
 	"golang.org/x/tools/imports"
 )
 
 type (
-	files  map[string]io.Reader
-	layout interface {
-		transformAST(ctx *sourceContext) (files, error)
+	Files map[string]io.Reader
+
+	Transformer interface {
+		TransformAST(SourceContext) (Files, error)
 	}
-	outputTree map[string]*ast.File
 )
 
-func (ot outputTree) addFile(path, pkgname string) *ast.File {
-	file := &ast.File{
-		Name:  id(pkgname),
-		Decls: []ast.Decl{},
-	}
-	ot[path] = file
-	return file
-}
-
-func getGopath() string {
+// GetGopath gets the set Go path, or else returns an absolute path of the default path (i.e. "~/.go")
+func GetGopath() string {
 	gopath, set := os.LookupEnv("GOPATH")
 	if !set {
 		return filepath.Join(os.Getenv("HOME"), "go")
@@ -67,12 +59,14 @@ func importPath(targetDir, gopath string) (string, error) {
 
 }
 
-func selectify(file *ast.File, pkgName, identName, importPath string) *ast.File {
+// Selectify ensures that a particular identName is considered to be a part of pkgName, imported from importPath
+//     xxx needs and example
+func Selectify(file *ast.File, pkgName, identName, importPath string) *ast.File {
 	if file.Name.Name == pkgName {
 		return file
 	}
 
-	selector := sel(id(pkgName), id(identName))
+	selector := Sel(Id(pkgName), Id(identName))
 	var did bool
 	if file, did = selectifyIdent(identName, file, selector); did {
 		addImport(file, importPath)
@@ -144,18 +138,6 @@ func (sd sortableDecls) Swap(i int, j int) {
 	sd[i], sd[j] = sd[j], sd[i]
 }
 
-func formatNodes(nodes outputTree) (files, error) {
-	res := files{}
-	var err error
-	for fn, node := range nodes {
-		res[fn], err = formatNode(fn, node)
-		if err != nil {
-			return nil, errors.Wrapf(err, "formatNodes")
-		}
-	}
-	return res, nil
-}
-
 // XXX debug
 func spewDecls(f *ast.File) {
 	for _, d := range f.Decls {
@@ -170,10 +152,6 @@ func spewDecls(f *ast.File) {
 	}
 }
 
-func addImports(root *ast.File, ctx *sourceContext) {
-	root.Decls = append(root.Decls, ctx.importDecls()...)
-}
-
 func addImport(root *ast.File, path string) {
 	for _, d := range root.Decls {
 		if imp, is := d.(*ast.GenDecl); is && imp.Tok == token.IMPORT {
@@ -186,45 +164,4 @@ func addImport(root *ast.File, path string) {
 		}
 	}
 	root.Decls = append(root.Decls, importFor(importSpec(path)))
-}
-
-func addStubStruct(root *ast.File, iface iface) {
-	root.Decls = append(root.Decls, iface.stubStructDecl())
-}
-
-func addType(root *ast.File, typ *ast.TypeSpec) {
-	root.Decls = append(root.Decls, typeDecl(typ))
-}
-
-func addMethod(root *ast.File, iface iface, meth method) {
-	def := meth.definition(iface)
-	root.Decls = append(root.Decls, def)
-}
-
-func addRequestStruct(root *ast.File, meth method) {
-	root.Decls = append(root.Decls, meth.requestStruct())
-}
-
-func addResponseStruct(root *ast.File, meth method) {
-	root.Decls = append(root.Decls, meth.responseStruct())
-}
-
-func addEndpointMaker(root *ast.File, ifc iface, meth method) {
-	root.Decls = append(root.Decls, meth.endpointMaker(ifc))
-}
-
-func addEndpointsStruct(root *ast.File, ifc iface) {
-	root.Decls = append(root.Decls, ifc.endpointsStruct())
-}
-
-func addHTTPHandler(root *ast.File, ifc iface) {
-	root.Decls = append(root.Decls, ifc.httpHandler())
-}
-
-func addDecoder(root *ast.File, meth method) {
-	root.Decls = append(root.Decls, meth.decoderFunc())
-}
-
-func addEncoder(root *ast.File, meth method) {
-	root.Decls = append(root.Decls, meth.encoderFunc())
 }

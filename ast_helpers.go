@@ -1,66 +1,9 @@
-package main
+package rocketsurgery
 
 import (
-	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"strings"
-	"unicode"
 )
-
-func export(s string) string {
-	return strings.Title(s)
-}
-
-func unexport(s string) string {
-	first := true
-	return strings.Map(func(r rune) rune {
-		if first {
-			first = false
-			return unicode.ToLower(r)
-		}
-		return r
-	}, s)
-}
-
-func inventName(t ast.Expr, scope *ast.Scope) *ast.Ident {
-	n := baseName(t)
-	for try := 0; ; try++ {
-		nstr := pickName(n, try)
-		obj := ast.NewObj(ast.Var, nstr)
-		if alt := scope.Insert(obj); alt == nil {
-			return ast.NewIdent(nstr)
-		}
-	}
-}
-
-func baseName(t ast.Expr) string {
-	switch tt := t.(type) {
-	default:
-		panic(fmt.Sprintf("don't know how to choose a base name for %T (%[1]v)", tt))
-	case *ast.ArrayType:
-		return "slice"
-	case *ast.Ident:
-		return tt.Name
-	case *ast.SelectorExpr:
-		return tt.Sel.Name
-	}
-}
-
-func pickName(base string, idx int) string {
-	if idx == 0 {
-		switch base {
-		default:
-			return strings.Split(base, "")[0]
-		case "Context":
-			return "ctx"
-		case "error":
-			return "err"
-		}
-	}
-	return fmt.Sprintf("%s%d", base, idx)
-}
 
 func scopeWith(names ...string) *ast.Scope {
 	scope := ast.NewScope(nil)
@@ -101,50 +44,6 @@ func replaceLit(src ast.Node, from, to string) ast.Node {
 	return WalkReplace(r, src)
 }
 
-func fullAST() *ast.File {
-	full, err := ASTTemplates.Open("full.go")
-	if err != nil {
-		panic(err)
-	}
-	f, err := parser.ParseFile(token.NewFileSet(), "templates/full.go", full, parser.DeclarationErrors)
-	if err != nil {
-		panic(err)
-	}
-	return f
-}
-
-func fetchImports() []*ast.ImportSpec {
-	return fullAST().Imports
-}
-
-func fetchFuncDecl(name string) *ast.FuncDecl {
-	f := fullAST()
-	for _, decl := range f.Decls {
-		if f, ok := decl.(*ast.FuncDecl); ok && f.Name.Name == name {
-			return f
-		}
-	}
-	panic(fmt.Errorf("No function called %q in 'templates/full.go'", name))
-}
-
-func id(name string) *ast.Ident {
-	return ast.NewIdent(name)
-}
-
-func sel(ids ...*ast.Ident) ast.Expr {
-	switch len(ids) {
-	default:
-		return &ast.SelectorExpr{
-			X:   sel(ids[:len(ids)-1]...),
-			Sel: ids[len(ids)-1],
-		}
-	case 1:
-		return ids[0]
-	case 0:
-		panic("zero ids to sel()")
-	}
-}
-
 func typeField(t ast.Expr) *ast.Field {
 	return &ast.Field{Type: t}
 }
@@ -171,22 +70,6 @@ func mappedFieldList(fn func(arg) *ast.Field, args ...arg) *ast.FieldList {
 func blockStmt(stmts ...ast.Stmt) *ast.BlockStmt {
 	return &ast.BlockStmt{
 		List: stmts,
-	}
-}
-
-func structDecl(name *ast.Ident, fields *ast.FieldList) ast.Decl {
-	return typeDecl(&ast.TypeSpec{
-		Name: name,
-		Type: &ast.StructType{
-			Fields: fields,
-		},
-	})
-}
-
-func typeDecl(ts *ast.TypeSpec) ast.Decl {
-	return &ast.GenDecl{
-		Tok:   token.TYPE,
-		Specs: []ast.Spec{ts},
 	}
 }
 

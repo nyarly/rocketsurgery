@@ -1,4 +1,4 @@
-package main
+package rocketsurgery
 
 import (
 	"fmt"
@@ -6,11 +6,46 @@ import (
 	"go/token"
 )
 
-type sourceContext struct {
-	pkg        *ast.Ident
-	imports    []*ast.ImportSpec
-	interfaces []iface
-	types      []*ast.TypeSpec
+type (
+	// A SourceContext ...
+	SourceContext interface {
+		Package() *ast.Ident
+		AddImports(*ast.File, ASTTemplate)
+		Interfaces() []Interface
+		Types() []*ast.TypeSpec
+	}
+
+	sourceContext struct {
+		pkg        *ast.Ident
+		imports    []*ast.ImportSpec
+		interfaces []iface
+		types      []*ast.TypeSpec
+	}
+)
+
+func ExtractContext(f ast.Node) (SourceContext, error) {
+	context := &sourceContext{}
+	visitor := &parseVisitor{src: context}
+
+	ast.Walk(visitor, f)
+
+	return context, context.validate()
+}
+
+func (sc *sourceContext) Interfaces() []Interface {
+	is := []Interface{}
+	for _, i := range sc.interfaces {
+		is = append(is, Interface(&i))
+	}
+	return is
+}
+
+func (sc *sourceContext) Types() []*ast.TypeSpec {
+	return sc.types
+}
+
+func (sc *sourceContext) Package() *ast.Ident {
+	return sc.pkg
 }
 
 func (sc *sourceContext) validate() error {
@@ -27,7 +62,7 @@ func (sc *sourceContext) validate() error {
 	return nil
 }
 
-func (sc *sourceContext) importDecls() (decls []ast.Decl) {
+func (sc *sourceContext) importDecls(astt ASTTemplate) (decls []ast.Decl) {
 	have := map[string]struct{}{}
 	notHave := func(is *ast.ImportSpec) bool {
 		if _, has := have[is.Path.Value]; has {
@@ -43,11 +78,15 @@ func (sc *sourceContext) importDecls() (decls []ast.Decl) {
 		}
 	}
 
-	for _, is := range fetchImports() {
+	for _, is := range astt.Imports() {
 		if notHave(is) {
 			decls = append(decls, &ast.GenDecl{Tok: token.IMPORT, Specs: []ast.Spec{is}})
 		}
 	}
 
 	return
+}
+
+func (sc *sourceContext) AddImports(root *ast.File, astt ASTTemplate) {
+	root.Decls = append(root.Decls, sc.importDecls(astt)...)
 }

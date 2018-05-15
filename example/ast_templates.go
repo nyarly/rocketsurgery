@@ -2,7 +2,7 @@
 // If you need to update this file, change the contents of those Files
 // (or add new ones) and run 'go generate'
 
-package rocketsurgery
+package main
 
 import "golang.org/x/tools/godoc/vfs/mapfs"
 

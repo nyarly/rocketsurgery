@@ -10,7 +10,7 @@ type flat struct {
 	tmpl rs.ASTTemplate
 }
 
-func (f flat) transformAST(ctx rs.SourceContext) (rs.Files, error) {
+func (f flat) TransformAST(ctx rs.SourceContext) (rs.Files, error) {
 	root := &ast.File{
 		Name:  ctx.Package(),
 		Decls: []ast.Decl{},
@@ -27,14 +27,14 @@ func (f flat) transformAST(ctx rs.SourceContext) (rs.Files, error) {
 		addStubStruct(root, s)
 
 		for _, meth := range iface.Methods() {
-			addMethod(root, iface, meth)
+			addMethod(f.tmpl, root, iface, meth)
 			addRequestStruct(root, meth)
 			addResponseStruct(root, meth)
 			addEndpointMaker(root, iface, meth)
 		}
 
 		addEndpointsStruct(root, iface)
-		addHTTPHandler(root, iface)
+		addHTTPHandler(f.tmpl, root, iface)
 
 		for _, meth := range iface.Methods() {
 			addDecoder(root, meth)

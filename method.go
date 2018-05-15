@@ -11,6 +11,7 @@ type (
 		Name() *ast.Ident
 		Params() []Arg
 		Results() []Arg
+		Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl
 	}
 
 	method struct {
@@ -41,11 +42,29 @@ func (m method) Results() []Arg {
 	return as
 }
 
-func (m method) definition(astt ASTTemplate, s Struct) ast.Decl {
-	notImpl := astt.FunctionDecl("ExampleEndpoint") //XXX
+// Definition produces a method declaration for this Method, with Struct as the
+// receiver, and the body taken from that sourceName in astt.
+
+// One possible refinement would be to align the template function with this
+// method. There's no effort made (yet) to get the body of the template
+// function to agree with this method. But maybe a like number of parameters could be replaced so that
+//
+//    func Template(x,y,z int) (a []int) {
+//      return []int{x,y,z}
+//    }
+//
+// could become
+//
+//    func (s struct) method(tom, dick, harry string) (a []string) {
+//      return []string{tom,dick,harry}
+//    }
+//
+// That'd be cool, right? It doesn't happen yet.
+func (m method) Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl {
+	notImpl := astt.FunctionDecl(sourceName)
 
 	notImpl.Name = m.name
-	notImpl.Recv = fieldList(s.Receiver())
+	notImpl.Recv = FieldList(s.Receiver())
 	scope := scopeWith(notImpl.Recv.List[0].Names[0].Name)
 	notImpl.Type.Params = m.funcParams(scope)
 	notImpl.Type.Results = m.funcResults()

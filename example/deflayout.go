@@ -17,7 +17,7 @@ func (l deflayout) packagePath(sub string) string {
 	return filepath.Join(l.targetDir, sub)
 }
 
-func (l deflayout) transformAST(ctx rs.SourceContext) (rs.Files, error) {
+func (l deflayout) TransformAST(ctx rs.SourceContext) (rs.Files, error) {
 	out := rs.NewOutputTree()
 
 	endpoints := StubFile("endpoints")
@@ -42,14 +42,14 @@ func (l deflayout) transformAST(ctx rs.SourceContext) (rs.Files, error) {
 		addStubStruct(service, s)
 
 		for _, meth := range iface.Methods() {
-			addMethod(service, iface, meth)
+			addMethod(l.tmpl, service, iface, meth)
 			addRequestStruct(endpoints, meth)
 			addResponseStruct(endpoints, meth)
 			addEndpointMaker(endpoints, iface, meth)
 		}
 
 		addEndpointsStruct(endpoints, iface)
-		addHTTPHandler(http, iface)
+		addHTTPHandler(l.tmpl, http, iface)
 
 		for _, meth := range iface.Methods() {
 			addDecoder(http, meth)

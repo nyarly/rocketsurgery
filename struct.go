@@ -30,7 +30,7 @@ func (s strct) Name() *ast.Ident {
 }
 
 func (s strct) Receiver() *ast.Field {
-	return field(s.receiverName(), &s.name)
+	return Field(s.receiverName(), &s.name)
 }
 
 // XXX doesn't seem quite right

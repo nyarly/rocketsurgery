@@ -107,3 +107,18 @@ func Unexport(s string) string {
 		return r
 	}, s)
 }
+
+func TypeField(t ast.Expr) *ast.Field {
+	return &ast.Field{Type: t}
+}
+
+func Field(n *ast.Ident, t ast.Expr) *ast.Field {
+	return &ast.Field{
+		Names: []*ast.Ident{n},
+		Type:  t,
+	}
+}
+
+func FieldList(list ...*ast.Field) *ast.FieldList {
+	return &ast.FieldList{List: list}
+}

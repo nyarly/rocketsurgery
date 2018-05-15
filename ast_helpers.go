@@ -20,7 +20,7 @@ func (fn visitFn) Visit(node ast.Node, r func(ast.Node)) Visitor {
 	return fn
 }
 
-func replaceIdent(src ast.Node, named string, with ast.Node) ast.Node {
+func ReplaceIdent(src ast.Node, named string, with ast.Node) ast.Node {
 	r := visitFn(func(node ast.Node, replaceWith func(ast.Node)) {
 		switch id := node.(type) {
 		case *ast.Ident:
@@ -32,7 +32,7 @@ func replaceIdent(src ast.Node, named string, with ast.Node) ast.Node {
 	return WalkReplace(r, src)
 }
 
-func replaceLit(src ast.Node, from, to string) ast.Node {
+func ReplaceLit(src ast.Node, from, to string) ast.Node {
 	r := visitFn(func(node ast.Node, replaceWith func(ast.Node)) {
 		switch lit := node.(type) {
 		case *ast.BasicLit:
@@ -42,21 +42,6 @@ func replaceLit(src ast.Node, from, to string) ast.Node {
 		}
 	})
 	return WalkReplace(r, src)
-}
-
-func typeField(t ast.Expr) *ast.Field {
-	return &ast.Field{Type: t}
-}
-
-func field(n *ast.Ident, t ast.Expr) *ast.Field {
-	return &ast.Field{
-		Names: []*ast.Ident{n},
-		Type:  t,
-	}
-}
-
-func fieldList(list ...*ast.Field) *ast.FieldList {
-	return &ast.FieldList{List: list}
 }
 
 func mappedFieldList(fn func(arg) *ast.Field, args ...arg) *ast.FieldList {
@@ -73,7 +58,7 @@ func blockStmt(stmts ...ast.Stmt) *ast.BlockStmt {
 	}
 }
 
-func pasteStmts(body *ast.BlockStmt, idx int, stmts []ast.Stmt) {
+func PasteStmts(body *ast.BlockStmt, idx int, stmts []ast.Stmt) {
 	list := body.List
 	prefix := list[:idx]
 	suffix := make([]ast.Stmt, len(list)-idx-1)

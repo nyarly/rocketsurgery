@@ -7,8 +7,12 @@ import (
 )
 
 type (
+	// An Interface describes a Go interface.
 	Interface interface {
+		// Methods returns a list of methods for this interface.
 		Methods() []Method
+		// Implementor returns a Struct suitable to use an an implementor of this
+		// interface.
 		Implementor() Struct
 	}
 	// because "interface" is a keyword...

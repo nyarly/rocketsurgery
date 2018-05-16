@@ -7,9 +7,13 @@ import (
 )
 
 type (
+	// Struct represents a Go struct.
 	Struct interface {
+		// Name returns an Ident for the name of the struct.
 		Name() *ast.Ident
+		// Decl returns a Decl node declaring the struct.
 		Decl() ast.Decl
+		// Receiver returns a Field node suitable to use this struct as the receiver of a method.
 		Receiver() *ast.Field
 	}
 

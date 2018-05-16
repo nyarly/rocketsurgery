@@ -4,6 +4,8 @@
 //     import . "github.com/nyarly/rocketsurgery/shortcuts"
 // so that the functions here will be available without qualifier.
 // Because what fun is using rocket surgery shortcuts if you can't self-amputate with high explosives?
+//
+// Many of the functions in this package serve to quickly build 'go/ast' structs.
 package shortcuts
 
 import (
@@ -54,6 +56,7 @@ func Id(name string) *ast.Ident {
 	return ast.NewIdent(name)
 }
 
+// StructDecl constructs a struct declaration node, based on a name and a list of fields.
 func StructDecl(name *ast.Ident, fields *ast.FieldList) ast.Decl {
 	return TypeDecl(&ast.TypeSpec{
 		Name: name,
@@ -63,6 +66,7 @@ func StructDecl(name *ast.Ident, fields *ast.FieldList) ast.Decl {
 	})
 }
 
+// TypeDecl constructs a type declaration based on a TypeSpec.
 func TypeDecl(ts *ast.TypeSpec) ast.Decl {
 	return &ast.GenDecl{
 		Tok:   token.TYPE,
@@ -70,6 +74,7 @@ func TypeDecl(ts *ast.TypeSpec) ast.Decl {
 	}
 }
 
+// StubFile creates an *ast.File for a package name.
 func StubFile(pkgname string) *ast.File {
 	return &ast.File{
 		Name:  Id(pkgname),
@@ -77,10 +82,12 @@ func StubFile(pkgname string) *ast.File {
 	}
 }
 
+// InventName uses a base expression to figure out a unique name within a scope.
+// It's otherwise very easy for generated code not to build because there's already a 'foo' in scope.
 func InventName(scope *ast.Scope, t ast.Expr) *ast.Ident {
 	n := BaseName(t)
 	for try := 0; ; try++ {
-		nstr := PickName(n, try)
+		nstr := pickName(n, try)
 		obj := ast.NewObj(ast.Var, nstr)
 		if alt := scope.Insert(obj); alt == nil {
 			return ast.NewIdent(nstr)
@@ -88,6 +95,7 @@ func InventName(scope *ast.Scope, t ast.Expr) *ast.Ident {
 	}
 }
 
+// BaseName chooses a name for a variable based on its type.
 func BaseName(t ast.Expr) string {
 	switch tt := t.(type) {
 	default:
@@ -101,7 +109,7 @@ func BaseName(t ast.Expr) string {
 	}
 }
 
-func PickName(base string, idx int) string {
+func pickName(base string, idx int) string {
 	if idx == 0 {
 		switch base {
 		default:
@@ -115,10 +123,12 @@ func PickName(base string, idx int) string {
 	return fmt.Sprintf("%s%d", base, idx)
 }
 
+// Export takes a string and forms the "Export" form of it.
 func Export(s string) string {
 	return strings.Title(s)
 }
 
+// Unexport takes a string and forms the "unexported" form of it.
 func Unexport(s string) string {
 	first := true
 	return strings.Map(func(r rune) rune {
@@ -130,10 +140,12 @@ func Unexport(s string) string {
 	}, s)
 }
 
+// TypeField constructs a field with a particular type.
 func TypeField(t ast.Expr) *ast.Field {
 	return &ast.Field{Type: t}
 }
 
+// Field builds a Field for a name and type.
 func Field(n *ast.Ident, t ast.Expr) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{n},
@@ -141,6 +153,8 @@ func Field(n *ast.Ident, t ast.Expr) *ast.Field {
 	}
 }
 
+// FieldList builds a list of fields, as used for function parameters, function
+// results, or struct members.
 func FieldList(list ...*ast.Field) *ast.FieldList {
 	return &ast.FieldList{List: list}
 }

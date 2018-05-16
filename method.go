@@ -7,13 +7,37 @@ import (
 )
 
 type (
+	// A Method represents a method to be generated.
+	// n.b. there's a Method interface, but not a Function one.
+	//
+	// XXX Two options here: create a *very* similar Function or rename this to
+	// e.g. Proceedure with methods for FunctionDefinition and MethodDefinition.
+	// I (jdl) lean toward the latter.
 	Method interface {
+		// Name returns an Ident for the method's name.
 		Name() *ast.Ident
+		// Distinguished returns a Method that has been renamed to be unique within
+		// the passed Scope. The parameters and results will likewise be
+		// distinguished in new scopes (so that they don't collide with each
+		// other.)
+		//
+		// XXX Method and Arg have Distinguish methods - maybe Struct and Interface
+		// should too?
 		Distinguished(scope *ast.Scope) Method
+		// Returns a list of Arg of the paramters (e.g. func(these, here))
 		Params() []Arg
+		// Returns a list of Arg for the results (e.g. func() (this, one))
 		Results() []Arg
+		// Returns a list of result identifiers, unique to the scope...
+		// xxx this is probably superfluous and will be removed.
 		ResultNames(scope *ast.Scope) []*ast.Ident
+
+		// Return the ast subtree that defines the described function.
+		// Pulls the body from astt with the name sourceName.
 		Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl
+
+		// Returns the parameters that are not a first-position context.Context. :/
+		// xxx probably a misfeature. Slated for removal.
 		NonContextParams() []Arg
 	}
 

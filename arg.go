@@ -7,12 +7,20 @@ import (
 )
 
 type (
+	// An Arg represents an argument of method or function - that is, a parameter
+	// or result.
 	Arg interface {
+		// Name returns an Ident for use as the name of the Arg.
 		Name() *ast.Ident
+		// Name returns an Expr for use as the type of the Arg.
 		Type() ast.Expr
+		// Distinguish returns an Arg whose name is unique within the given Scope.
 		Distinguish(scope *ast.Scope) Arg
+		// AsField returns a Field node with both name and type.
 		AsField() *ast.Field
+		// AsResult returns a Field node with a blank name.
 		AsResult() *ast.Field
+		// Exported returns a Field with the name Exported.
 		Exported() *ast.Field
 	}
 

@@ -15,8 +15,8 @@ func addType(root *ast.File, typ *ast.TypeSpec) {
 	root.Decls = append(root.Decls, TypeDecl(typ))
 }
 
-func addMethod(at rs.ASTTemplate, root *ast.File, iface rs.Interface, meth rs.Method) {
-	s := iface.Implementor()
+func addMethod(at rs.ASTTemplate, root *ast.File, ifc rs.Interface, meth rs.Method) {
+	s := ifc.Implementor()
 	def := meth.Definition(s, at, "ExampleEndpoint")
 	root.Decls = append(root.Decls, def)
 }
@@ -29,8 +29,9 @@ func addResponseStruct(root *ast.File, meth rs.Method) {
 	root.Decls = append(root.Decls, responseStruct(meth))
 }
 
-func addEndpointMaker(root *ast.File, ifc rs.Interface, meth rs.Method) {
-	root.Decls = append(root.Decls, endpointMaker(meth, ifc))
+func addEndpointMaker(at rs.ASTTemplate, root *ast.File, ifc rs.Interface, meth rs.Method) {
+	s := ifc.Implementor()
+	root.Decls = append(root.Decls, endpointMaker(at, s, meth))
 }
 
 func addEndpointsStruct(root *ast.File, ifc rs.Interface) {
@@ -41,10 +42,10 @@ func addHTTPHandler(at rs.ASTTemplate, root *ast.File, ifc rs.Interface) {
 	root.Decls = append(root.Decls, httpHandler(at, ifc))
 }
 
-func addDecoder(root *ast.File, meth rs.Method) {
-	root.Decls = append(root.Decls, decoderFunc(meth))
+func addDecoder(at rs.ASTTemplate, root *ast.File, meth rs.Method) {
+	root.Decls = append(root.Decls, decoderFunc(at, meth))
 }
 
-func addEncoder(root *ast.File, meth rs.Method) {
-	root.Decls = append(root.Decls, encoderFunc(meth))
+func addEncoder(at rs.ASTTemplate, root *ast.File, meth rs.Method) {
+	root.Decls = append(root.Decls, encoderFunc(at, meth))
 }

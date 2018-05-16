@@ -5,7 +5,7 @@ import (
 	"go/token"
 )
 
-func scopeWith(names ...string) *ast.Scope {
+func ScopeWith(names ...string) *ast.Scope {
 	scope := ast.NewScope(nil)
 	for _, name := range names {
 		scope.Insert(ast.NewObj(ast.Var, name))
@@ -44,7 +44,7 @@ func ReplaceLit(src ast.Node, from, to string) ast.Node {
 	return WalkReplace(r, src)
 }
 
-func mappedFieldList(fn func(arg) *ast.Field, args ...arg) *ast.FieldList {
+func MappedFieldList(fn func(Arg) *ast.Field, args ...Arg) *ast.FieldList {
 	fl := &ast.FieldList{List: []*ast.Field{}}
 	for _, a := range args {
 		fl.List = append(fl.List, fn(a))

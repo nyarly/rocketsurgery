@@ -9,56 +9,54 @@ import (
 	. "github.com/nyarly/rocketsurgery/shortcuts"
 )
 
-func endpointMaker(m rs.Method, ifc rs.Interface) ast.Decl {
-	endpointFn := fetchFuncDecl("makeExampleEndpoint")
-	scope := scopeWith("ctx", "req", ifc.receiverName().Name)
+func endpointMaker(t rs.ASTTemplate, s rs.Struct, m rs.Method) ast.Decl {
+	endpointFn := t.FunctionDecl("makeExampleEndpoint")
+	scope := rs.ScopeWith("ctx", "req", s.Name().Name)
 
 	anonFunc := endpointFn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.FuncLit)
-	if !m.hasContext() {
+	if !rs.HasContext(m) {
 		// strip context param from endpoint function
 		anonFunc.Type.Params.List = anonFunc.Type.Params.List[1:]
 	}
 
-	anonFunc = replaceIdent(anonFunc, "ExampleRequest", m.requestStructName()).(*ast.FuncLit)
-	callMethod := m.called(ifc, scope, "ctx", "req")
+	anonFunc = rs.ReplaceIdent(anonFunc, "ExampleRequest", requestStructName(m)).(*ast.FuncLit)
+	callMethod := called(m, s, scope, "ctx", "req")
 	anonFunc.Body.List[1] = callMethod
-	anonFunc.Body.List[2].(*ast.ReturnStmt).Results[0] = m.wrapResult(callMethod.Lhs)
+	anonFunc.Body.List[2].(*ast.ReturnStmt).Results[0] = wrapResult(m, callMethod.Lhs)
 
 	endpointFn.Body.List[0].(*ast.ReturnStmt).Results[0] = anonFunc
-	endpointFn.Name = m.endpointMakerName()
-	endpointFn.Type.Params = fieldList(ifc.reciever())
-	endpointFn.Type.Results = fieldList(typeField(sel(Id("endpoint"), Id("Endpoint"))))
+	endpointFn.Name = endpointMakerName(m)
+	endpointFn.Type.Params = FieldList(s.Receiver())
+	endpointFn.Type.Results = FieldList(TypeField(Sel(Id("endpoint"), Id("Endpoint"))))
 	return endpointFn
 }
 
 func pathName(m rs.Method) string {
-	return "/" + strings.ToLower(m.name.Name)
+	return "/" + strings.ToLower(m.Name().Name)
 }
 
 func encodeFuncName(m rs.Method) *ast.Ident {
-	return Id("Encode" + m.name.Name + "Response")
+	return Id("Encode" + m.Name().Name + "Response")
 }
 
 func decodeFuncName(m rs.Method) *ast.Ident {
-	return Id("Decode" + m.name.Name + "Request")
+	return Id("Decode" + m.Name().Name + "Request")
 }
 
 // xxx make generic?
-func called(m rs.Method, ifc rs.Interface, scope *ast.Scope, ctxName, spreadStruct string) *ast.AssignStmt {
-	m.resolveStructNames()
-
+func called(m rs.Method, s rs.Struct, scope *ast.Scope, ctxName, spreadStruct string) *ast.AssignStmt {
 	resNamesExpr := []ast.Expr{}
-	for _, r := range m.resultNames(scope) {
+	for _, r := range m.ResultNames(scope) {
 		resNamesExpr = append(resNamesExpr, ast.Expr(r))
 	}
 
 	arglist := []ast.Expr{}
-	if m.hasContext() {
+	if rs.HasContext(m) {
 		arglist = append(arglist, Id(ctxName))
 	}
 	ssid := Id(spreadStruct)
-	for _, f := range m.requestStructFields().List {
-		arglist = append(arglist, sel(ssid, f.Names[0]))
+	for _, f := range requestStructFields(m).List {
+		arglist = append(arglist, Sel(ssid, f.Names[0]))
 	}
 
 	return &ast.AssignStmt{
@@ -66,7 +64,7 @@ func called(m rs.Method, ifc rs.Interface, scope *ast.Scope, ctxName, spreadStru
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun:  sel(ifc.receiverName(), m.name),
+				Fun:  Sel(s.Name(), m.Name()),
 				Args: arglist,
 			},
 		},
@@ -75,63 +73,61 @@ func called(m rs.Method, ifc rs.Interface, scope *ast.Scope, ctxName, spreadStru
 
 func wrapResult(m rs.Method, results []ast.Expr) ast.Expr {
 	kvs := []ast.Expr{}
-	m.resolveStructNames()
 
-	for i, a := range m.results {
+	scope := rs.ScopeWith()
+	for i, a := range m.Results() {
 		kvs = append(kvs, &ast.KeyValueExpr{
-			Key:   ast.NewIdent(export(a.asField.Name)),
+			Key:   ast.NewIdent(Export(a.Distinguish(scope).Name().Name)), //xxx
 			Value: results[i],
 		})
 	}
 	return &ast.CompositeLit{
-		Type: m.responseStructName(),
+		Type: responseStructName(m),
 		Elts: kvs,
 	}
 }
 
-func decoderFunc(m rs.Method) ast.Decl {
-	fn := fetchFuncDecl("DecodeExampleRequest")
-	fn.Name = m.decodeFuncName()
-	fn = replaceIdent(fn, "ExampleRequest", m.requestStructName()).(*ast.FuncDecl)
+func decoderFunc(t rs.ASTTemplate, m rs.Method) ast.Decl {
+	fn := t.FunctionDecl("DecodeExampleRequest")
+	fn.Name = decodeFuncName(m)
+	fn = rs.ReplaceIdent(fn, "ExampleRequest", requestStructName(m)).(*ast.FuncDecl)
 	return fn
 }
 
-func encoderFunc(m rs.Method) ast.Decl {
-	fn := fetchFuncDecl("EncodeExampleResponse")
-	fn.Name = m.encodeFuncName()
+func encoderFunc(t rs.ASTTemplate, m rs.Method) ast.Decl {
+	fn := t.FunctionDecl("EncodeExampleResponse")
+	fn.Name = encodeFuncName(m)
 	return fn
 }
 
 func endpointMakerName(m rs.Method) *ast.Ident {
-	return Id("make" + m.name.Name + "Endpoint")
+	return Id("make" + m.Name().Name + "Endpoint")
 }
 
 func requestStruct(m rs.Method) ast.Decl {
-	m.resolveStructNames()
-	return structDecl(m.requestStructName(), m.requestStructFields())
+	return StructDecl(requestStructName(m), requestStructFields(m))
 }
 
 func responseStruct(m rs.Method) ast.Decl {
-	m.resolveStructNames()
-	return structDecl(m.responseStructName(), m.responseStructFields())
+	return StructDecl(responseStructName(m), responseStructFields(m))
 }
 
 func requestStructName(m rs.Method) *ast.Ident {
-	return Id(export(m.name.Name) + "Request")
+	return Id(Export(m.Name().Name) + "Request")
 }
 
 func requestStructFields(m rs.Method) *ast.FieldList {
-	return mappedFieldList(func(a arg) *ast.Field {
-		return a.exported()
-	}, m.nonContextParams()...)
+	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
+		return a.Exported()
+	}, m.NonContextParams()...)
 }
 
 func responseStructName(m rs.Method) *ast.Ident {
-	return Id(export(m.name.Name) + "Response")
+	return Id(Export(m.Name().Name) + "Response")
 }
 
 func responseStructFields(m rs.Method) *ast.FieldList {
-	return mappedFieldList(func(a arg) *ast.Field {
-		return a.exported()
-	}, m.results...)
+	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
+		return a.Exported()
+	}, m.Results()...)
 }

@@ -30,15 +30,15 @@ func (f flat) TransformAST(ctx rs.SourceContext) (rs.Files, error) {
 			addMethod(f.tmpl, root, iface, meth)
 			addRequestStruct(root, meth)
 			addResponseStruct(root, meth)
-			addEndpointMaker(root, iface, meth)
+			addEndpointMaker(f.tmpl, root, iface, meth)
 		}
 
 		addEndpointsStruct(root, iface)
 		addHTTPHandler(f.tmpl, root, iface)
 
 		for _, meth := range iface.Methods() {
-			addDecoder(root, meth)
-			addEncoder(root, meth)
+			addDecoder(f.tmpl, root, meth)
+			addEncoder(f.tmpl, root, meth)
 		}
 	}
 

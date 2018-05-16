@@ -35,7 +35,7 @@ func GetGopath() string {
 	return gopath
 }
 
-func importPath(targetDir, gopath string) (string, error) {
+func ImportPath(targetDir, gopath string) (string, error) {
 	if !filepath.IsAbs(targetDir) {
 		return "", fmt.Errorf("%q is not an absolute path", targetDir)
 	}

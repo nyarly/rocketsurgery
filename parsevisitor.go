@@ -19,26 +19,26 @@ type (
 	interfaceTypeVisitor struct {
 		node    *ast.TypeSpec
 		ts      *typeSpecVisitor
-		methods []method
+		methods []Method
 	}
 
 	methodVisitor struct {
 		depth           int
 		node            *ast.TypeSpec
-		list            *[]method
+		list            *[]Method
 		name            *ast.Ident
-		params, results *[]arg
+		params, results *[]Arg
 		isMethod        bool
 	}
 
 	argListVisitor struct {
-		list *[]arg
+		list *[]Arg
 	}
 
 	argVisitor struct {
 		node  *ast.TypeSpec
 		parts []ast.Expr
-		list  *[]arg
+		list  *[]Arg
 	}
 )
 
@@ -83,7 +83,7 @@ func (v *typeSpecVisitor) Visit(n ast.Node) ast.Visitor {
 		}
 		return v
 	case *ast.InterfaceType:
-		return &interfaceTypeVisitor{ts: v, methods: []method{}}
+		return &interfaceTypeVisitor{ts: v, methods: []Method{}}
 	case nil:
 		if v.iface != nil {
 			v.iface.name = v.name
@@ -125,11 +125,11 @@ func (v *methodVisitor) Visit(n ast.Node) ast.Visitor {
 		return v
 	case *ast.FieldList:
 		if v.params == nil {
-			v.params = &[]arg{}
+			v.params = &[]Arg{}
 			return &argListVisitor{list: v.params}
 		}
 		if v.results == nil {
-			v.results = &[]arg{}
+			v.results = &[]Arg{}
 		}
 		return &argListVisitor{list: v.results}
 	case nil:

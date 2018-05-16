@@ -1,4 +1,4 @@
-package rocketsurgery
+package main
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	rs "github.com/nyarly/rocketsurgery"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -20,7 +22,7 @@ func TestProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	laidout := func(t *testing.T, inpath, dir, kind string, layout layout, in []byte) {
+	laidout := func(t *testing.T, inpath, dir, kind string, layout rs.Transformer, in []byte) {
 		t.Run(kind, func(t *testing.T) {
 			targetDir := filepath.Join(dir, kind)
 			tree, err := process(inpath, bytes.NewBuffer(in), layout)

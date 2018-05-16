@@ -1,4 +1,4 @@
-// package shortcuts includes quick ways to do common things with AST manipulation.
+// Package shortcuts includes quick ways to do common things with AST manipulation.
 // Because what is rocket surgery if you can't take some shortcuts?
 // You are *encouraged* to use a dot import with this package (that is:
 //     import . "github.com/nyarly/rocketsurgery/shortcuts"
@@ -14,6 +14,9 @@ import (
 	"unicode"
 )
 
+// Sel constructs SelectorExpr (e.g. rocketsurgery.Sel) out of Idents.
+// Example:
+//     Sel(Id("rocketsurgery"), Id("Sel"))
 func Sel(ids ...*ast.Ident) ast.Expr {
 	switch len(ids) {
 	default:
@@ -28,6 +31,25 @@ func Sel(ids ...*ast.Ident) ast.Expr {
 	}
 }
 
+// SameSel compares two expresions and returns true if they're the same selector or ident.
+func SameSel(left, right ast.Expr) bool {
+	switch l := left.(type) {
+	case *ast.Ident:
+		if r, is := right.(*ast.Ident); is {
+			return l.Name == r.Name
+		}
+		return false
+	case *ast.SelectorExpr:
+		if r, is := right.(*ast.SelectorExpr); is {
+			return SameSel(l.X, r.X)
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// Id constructs an Ident from a string.
 func Id(name string) *ast.Ident {
 	return ast.NewIdent(name)
 }

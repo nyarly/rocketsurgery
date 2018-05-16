@@ -9,7 +9,7 @@ import (
 func TestImportPath(t *testing.T) {
 	testcase := func(gopath, targetpath, expected string) {
 		t.Run(fmt.Sprintf("%q + %q", gopath, targetpath), func(t *testing.T) {
-			actual, err := importPath(targetpath, gopath)
+			actual, err := ImportPath(targetpath, gopath)
 			if err != nil {
 				t.Fatalf("Expected no error, got %q", err)
 			}
@@ -28,7 +28,7 @@ func TestImportPath(t *testing.T) {
 func TestImportPathSadpath(t *testing.T) {
 	testcase := func(gopath, targetpath, expected string) {
 		t.Run(fmt.Sprintf("%q + %q", gopath, targetpath), func(t *testing.T) {
-			actual, err := importPath(targetpath, gopath)
+			actual, err := ImportPath(targetpath, gopath)
 			if actual != "" {
 				t.Errorf("Expected empty path, got %q", actual)
 			}

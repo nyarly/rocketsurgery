@@ -45,15 +45,15 @@ func (l deflayout) TransformAST(ctx rs.SourceContext) (rs.Files, error) {
 			addMethod(l.tmpl, service, iface, meth)
 			addRequestStruct(endpoints, meth)
 			addResponseStruct(endpoints, meth)
-			addEndpointMaker(endpoints, iface, meth)
+			addEndpointMaker(l.tmpl, endpoints, iface, meth)
 		}
 
 		addEndpointsStruct(endpoints, iface)
 		addHTTPHandler(l.tmpl, http, iface)
 
 		for _, meth := range iface.Methods() {
-			addDecoder(http, meth)
-			addEncoder(http, meth)
+			addDecoder(l.tmpl, http, meth)
+			addEncoder(l.tmpl, http, meth)
 		}
 
 		out.MapFiles(func(name string, f *ast.File) *ast.File {

@@ -9,21 +9,42 @@ import (
 type (
 	Method interface {
 		Name() *ast.Ident
+		Distinguished(scope *ast.Scope) Method
 		Params() []Arg
 		Results() []Arg
+		ResultNames(scope *ast.Scope) []*ast.Ident
 		Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl
+		NonContextParams() []Arg
 	}
 
 	method struct {
 		name            *ast.Ident
-		params          []arg
-		results         []arg
+		params          []Arg
+		results         []Arg
 		structsResolved bool
 	}
 )
 
 func (m method) Name() *ast.Ident {
 	return m.name
+}
+
+func (m method) Distinguished(scope *ast.Scope) Method {
+	name := m.name
+	if scope.Lookup(m.name.Name) != nil {
+		name = InventName(scope, m.name)
+	}
+	nm := method{name: name}
+
+	scope = ast.NewScope(nil)
+	for _, p := range m.params {
+		nm.params = append(nm.params, p.Distinguish(scope))
+	}
+	scope = ast.NewScope(nil)
+	for _, r := range m.results {
+		nm.results = append(nm.results, r.Distinguish(scope))
+	}
+	return nm
 }
 
 func (m method) Params() []Arg {
@@ -65,7 +86,7 @@ func (m method) Definition(s Struct, astt ASTTemplate, sourceName string) ast.De
 
 	notImpl.Name = m.name
 	notImpl.Recv = FieldList(s.Receiver())
-	scope := scopeWith(notImpl.Recv.List[0].Names[0].Name)
+	scope := ScopeWith(notImpl.Recv.List[0].Names[0].Name)
 	notImpl.Type.Params = m.funcParams(scope)
 	notImpl.Type.Results = m.funcResults()
 
@@ -73,69 +94,45 @@ func (m method) Definition(s Struct, astt ASTTemplate, sourceName string) ast.De
 }
 
 func (m method) funcResults() *ast.FieldList {
-	return mappedFieldList(func(a arg) *ast.Field {
-		return a.result()
+	return MappedFieldList(func(a Arg) *ast.Field {
+		return a.AsResult()
 	}, m.results...)
 }
 
 func (m method) funcParams(scope *ast.Scope) *ast.FieldList {
 	parms := &ast.FieldList{}
-	if m.hasContext() {
+	if HasContext(m) {
 		parms.List = []*ast.Field{{
 			Names: []*ast.Ident{ast.NewIdent("ctx")},
 			Type:  Sel(Id("context"), Id("Context")),
 		}}
 		scope.Insert(ast.NewObj(ast.Var, "ctx"))
 	}
-	parms.List = append(parms.List, mappedFieldList(func(a arg) *ast.Field {
-		return a.field(scope)
-	}, m.nonContextParams()...).List...)
+	parms.List = append(parms.List, MappedFieldList(func(a Arg) *ast.Field {
+		return a.Distinguish(scope).AsField()
+	}, m.NonContextParams()...).List...)
 	return parms
 }
 
-func (m method) nonContextParams() []arg {
-	if m.hasContext() {
+// Seems too specialized...
+func (m method) NonContextParams() []Arg {
+	if HasContext(m) {
 		return m.params[1:]
 	}
 	return m.params
 }
 
-func (m method) hasContext() bool {
-	if len(m.params) < 1 {
-		return false
-	}
-	carg := m.params[0].typ
-	// ugh. this is maybe okay for the one-off, but a general case for matching
-	// types would be helpful
-	if sel, is := carg.(*ast.SelectorExpr); is && sel.Sel.Name == "Context" {
-		if id, is := sel.X.(*ast.Ident); is && id.Name == "context" {
-			return true
-		}
-	}
-	return false
-}
-
-func (m method) resolveStructNames() {
-	if m.structsResolved {
-		return
-	}
-	m.structsResolved = true
-	scope := ast.NewScope(nil)
-	for i, p := range m.params {
-		p.asField = p.chooseName(scope)
-		m.params[i] = p
-	}
-	scope = ast.NewScope(nil)
-	for i, r := range m.results {
-		r.asField = r.chooseName(scope)
-		m.results[i] = r
-	}
-}
-
-func (m method) resultNames(scope *ast.Scope) []*ast.Ident {
+func (m method) ResultNames(scope *ast.Scope) []*ast.Ident {
 	ids := []*ast.Ident{}
 	for _, rz := range m.results {
-		ids = append(ids, rz.chooseName(scope))
+		ids = append(ids, rz.Distinguish(scope).Name())
 	}
 	return ids
+}
+
+func HasContext(m Method) bool {
+	if len(m.Params()) < 1 {
+		return false
+	}
+	return SameSel(m.Params()[0].Type(), Sel(Id("context"), Id("Context")))
 }

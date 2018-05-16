@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io"
 	"log"
 	"os"
@@ -94,25 +91,16 @@ func fullAST() rs.ASTTemplate {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return LoadAST("full.go", astfile)
+	return rs.LoadAST("full.go", astfile)
 }
 
 func process(filename string, source io.Reader, layout rs.Transformer) (rs.Files, error) {
-	f, err := parseFile(filename, source)
+	context, err := rs.ParseReader(filename, source)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parsing input %q", filename)
+		return nil, errors.Wrapf(err, "parsing input code")
 	}
-
-	context, err := extractContext(f)
-	if err != nil {
-		return nil, errors.Wrapf(err, "examining input file %q", filename)
-	}
-
-	tree, err := layout.transformAST(context)
-	if err != nil {
-		return nil, errors.Wrapf(err, "generating AST")
-	}
-	return tree, nil
+	tree, err := layout.TransformAST(context)
+	return tree, errors.Wrapf(err, "generating AST")
 }
 
 /*
@@ -123,14 +111,6 @@ func process(filename string, source io.Reader, layout rs.Transformer) (rs.Files
 	return buf, nil
 }
 */
-
-func parseFile(fname string, source io.Reader) (ast.Node, error) {
-	f, err := parser.ParseFile(token.NewFileSet(), fname, source, parser.DeclarationErrors)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
-}
 
 func splat(dir string, tree rs.Files) error {
 	for fn, buf := range tree {

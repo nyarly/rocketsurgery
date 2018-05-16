@@ -23,7 +23,7 @@ func httpHandler(t rs.ASTTemplate, i rs.Interface) ast.Decl {
 	for _, m := range i.Methods() {
 		handleCall := t.FunctionDecl("inlineHandlerBuilder").Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr)
 
-		handleCall = rs.ReplaceLit(handleCall, `"/bar"`, `"`+m.pathName()+`"`).(*ast.CallExpr)
+		handleCall = rs.ReplaceLit(handleCall, `"/bar"`, `"`+pathName(m)+`"`).(*ast.CallExpr)
 		handleCall = rs.ReplaceIdent(handleCall, "ExampleEndpoint", m.Name()).(*ast.CallExpr)
 		handleCall = rs.ReplaceIdent(handleCall, "DecodeExampleRequest", decodeFuncName(m)).(*ast.CallExpr)
 		handleCall = rs.ReplaceIdent(handleCall, "EncodeExampleResponse", encodeFuncName(m)).(*ast.CallExpr)

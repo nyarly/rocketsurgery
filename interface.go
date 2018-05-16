@@ -14,7 +14,7 @@ type (
 	// because "interface" is a keyword...
 	iface struct {
 		name, stubname, rcvrName *ast.Ident
-		methods                  []method
+		methods                  []Method
 	}
 )
 

@@ -3,7 +3,12 @@ package rocketsurgery
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
 	"go/token"
+	"io"
+	"os"
+
+	"github.com/pkg/errors"
 )
 
 type (
@@ -22,6 +27,32 @@ type (
 		types      []*ast.TypeSpec
 	}
 )
+
+func ParsePath(path string) (SourceContext, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error while opening %q", path)
+	}
+	defer file.Close()
+	return ParseReader(path, file)
+}
+
+// Example:
+//    func process(filename string, source io.Reader, layout rs.Transformer) (rs.Files, error) {
+//    	context, err := rs.ParseReader(filename, source)
+//    	if err != nil {
+//    		return nil, err
+//    	}
+//      return layout.TransformAST(context)
+//    }
+func ParseReader(filename string, source io.Reader) (SourceContext, error) {
+	f, err := parser.ParseFile(token.NewFileSet(), filename, source, parser.DeclarationErrors)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parsing input %q", filename)
+	}
+
+	return ExtractContext(f)
+}
 
 func ExtractContext(f ast.Node) (SourceContext, error) {
 	context := &sourceContext{}
@@ -54,8 +85,8 @@ func (sc *sourceContext) validate() error {
 	}
 	for _, i := range sc.interfaces {
 		for _, m := range i.methods {
-			if len(m.results) < 1 {
-				return fmt.Errorf("method %q of interface %q has no result types", m.name, i.name)
+			if len(m.Results()) < 1 {
+				return fmt.Errorf("method %q of interface %q has no result types", m.Name(), i.name)
 			}
 		}
 	}

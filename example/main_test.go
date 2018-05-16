@@ -93,8 +93,10 @@ func TestProcess(t *testing.T) {
 			if err != nil {
 				t.Fatal(inpath, err)
 			}
-			laidout(t, inpath, dir, "flat", flat{}, in)
+			tmpl := fullAST()
+			laidout(t, inpath, dir, "flat", flat{tmpl: tmpl}, in)
 			laidout(t, inpath, dir, "default", deflayout{
+				tmpl:      tmpl,
 				targetDir: filepath.Join("github.com/go-kit/kit/cmd/kitgen", dir, "default"),
 			}, in)
 		})

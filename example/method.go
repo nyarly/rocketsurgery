@@ -118,7 +118,7 @@ func requestStructName(m rs.Method) *ast.Ident {
 
 func requestStructFields(m rs.Method) *ast.FieldList {
 	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
-		return a.Exported()
+		return a.Distinguish(rs.ScopeWith()).Exported()
 	}, m.NonContextParams()...)
 }
 
@@ -128,6 +128,6 @@ func responseStructName(m rs.Method) *ast.Ident {
 
 func responseStructFields(m rs.Method) *ast.FieldList {
 	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
-		return a.Exported()
+		return a.Distinguish(rs.ScopeWith()).Exported()
 	}, m.Results()...)
 }

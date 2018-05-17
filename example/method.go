@@ -11,7 +11,7 @@ import (
 
 func endpointMaker(t rs.ASTTemplate, s rs.Struct, m rs.Method) ast.Decl {
 	endpointFn := t.FunctionDecl("makeExampleEndpoint")
-	scope := rs.ScopeWith("ctx", "req", s.Name().Name)
+	scope := rs.ScopeWith("ctx", "req", s.ReceiverName().Name)
 
 	anonFunc := endpointFn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.FuncLit)
 	if !rs.HasContext(m) {
@@ -64,7 +64,7 @@ func called(m rs.Method, s rs.Struct, scope *ast.Scope, ctxName, spreadStruct st
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun:  Sel(s.Name(), m.Name()),
+				Fun:  Sel(s.ReceiverName(), m.Name()),
 				Args: arglist,
 			},
 		},

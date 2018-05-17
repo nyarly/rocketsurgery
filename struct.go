@@ -11,6 +11,8 @@ type (
 	Struct interface {
 		// Name returns an Ident for the name of the struct.
 		Name() *ast.Ident
+		// Name returns an Ident for the name of the struct.
+		ReceiverName() *ast.Ident
 		// Decl returns a Decl node declaring the struct.
 		Decl() ast.Decl
 		// Receiver returns a Field node suitable to use this struct as the receiver of a method.
@@ -34,11 +36,11 @@ func (s strct) Name() *ast.Ident {
 }
 
 func (s strct) Receiver() *ast.Field {
-	return Field(s.receiverName(), &s.name)
+	return Field(s.ReceiverName(), &s.name)
 }
 
 // XXX doesn't seem quite right
-func (s strct) receiverName() *ast.Ident {
+func (s strct) ReceiverName() *ast.Ident {
 	if s.rcvrName != nil {
 		return s.rcvrName
 	}

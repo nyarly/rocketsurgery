@@ -22,7 +22,7 @@ type (
 	strct struct {
 		name     ast.Ident
 		rcvrName *ast.Ident
-		methods  []Method
+		methods  []Procedure
 	}
 )
 

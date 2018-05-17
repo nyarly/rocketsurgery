@@ -7,13 +7,13 @@ import (
 )
 
 type (
-	// A Method represents a method to be generated.
+	// A Procedure represents a method to be generated.
 	// n.b. there's a Method interface, but not a Function one.
 	//
 	// XXX Two options here: create a *very* similar Function or rename this to
 	// e.g. Proceedure with methods for FunctionDefinition and MethodDefinition.
 	// I (jdl) lean toward the latter.
-	Method interface {
+	Procedure interface {
 		// Name returns an Ident for the method's name.
 		Name() *ast.Ident
 		// Distinguished returns a Method that has been renamed to be unique within
@@ -23,7 +23,7 @@ type (
 		//
 		// XXX Method and Arg have Distinguish methods - maybe Struct and Interface
 		// should too?
-		Distinguished(scope *ast.Scope) Method
+		Distinguished(scope *ast.Scope) Procedure
 		// Returns a list of Arg of the paramters (e.g. func(these, here))
 		Params() []Arg
 		// Returns a list of Arg for the results (e.g. func() (this, one))
@@ -32,9 +32,13 @@ type (
 		// xxx this is probably superfluous and will be removed.
 		ResultNames(scope *ast.Scope) []*ast.Ident
 
-		// Return the ast subtree that defines the described function.
+		// MethodDefinition the ast subtree that defines the described procedure as a method.
 		// Pulls the body from astt with the name sourceName.
-		Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl
+		MethodDefinition(s Struct, astt ASTTemplate, sourceName string) ast.Decl
+
+		// FunctionDefinition the ast subtree that defines the described procedure as a function.
+		// Pulls the body from astt with the name sourceName.
+		FunctionDefinition(astt ASTTemplate, sourceName string) ast.Decl
 
 		// Returns the parameters that are not a first-position context.Context. :/
 		// xxx probably a misfeature. Slated for removal.
@@ -53,7 +57,7 @@ func (m method) Name() *ast.Ident {
 	return m.name
 }
 
-func (m method) Distinguished(scope *ast.Scope) Method {
+func (m method) Distinguished(scope *ast.Scope) Procedure {
 	name := m.name
 	if scope.Lookup(m.name.Name) != nil {
 		name = InventName(scope, m.name)
@@ -105,11 +109,22 @@ func (m method) Results() []Arg {
 //    }
 //
 // That'd be cool, right? It doesn't happen yet.
-func (m method) Definition(s Struct, astt ASTTemplate, sourceName string) ast.Decl {
+func (m method) MethodDefinition(s Struct, astt ASTTemplate, sourceName string) ast.Decl {
 	notImpl := astt.FunctionDecl(sourceName)
 
 	notImpl.Name = m.name
 	notImpl.Recv = FieldList(s.Receiver())
+	scope := ScopeWith(notImpl.Recv.List[0].Names[0].Name)
+	notImpl.Type.Params = m.funcParams(scope)
+	notImpl.Type.Results = m.funcResults()
+
+	return notImpl
+}
+
+func (m method) FunctionDefinition(astt ASTTemplate, sourceName string) ast.Decl {
+	notImpl := astt.FunctionDecl(sourceName)
+
+	notImpl.Name = m.name
 	scope := ScopeWith(notImpl.Recv.List[0].Names[0].Name)
 	notImpl.Type.Params = m.funcParams(scope)
 	notImpl.Type.Results = m.funcResults()
@@ -154,7 +169,7 @@ func (m method) ResultNames(scope *ast.Scope) []*ast.Ident {
 	return ids
 }
 
-func HasContext(m Method) bool {
+func HasContext(m Procedure) bool {
 	if len(m.Params()) < 1 {
 		return false
 	}

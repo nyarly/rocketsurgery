@@ -9,7 +9,7 @@ import (
 	. "github.com/nyarly/rocketsurgery/shortcuts"
 )
 
-func endpointMaker(t rs.ASTTemplate, s rs.Struct, m rs.Method) ast.Decl {
+func endpointMaker(t rs.ASTTemplate, s rs.Struct, m rs.Procedure) ast.Decl {
 	endpointFn := t.FunctionDecl("makeExampleEndpoint")
 	scope := rs.ScopeWith("ctx", "req", s.ReceiverName().Name)
 
@@ -31,20 +31,20 @@ func endpointMaker(t rs.ASTTemplate, s rs.Struct, m rs.Method) ast.Decl {
 	return endpointFn
 }
 
-func pathName(m rs.Method) string {
+func pathName(m rs.Procedure) string {
 	return "/" + strings.ToLower(m.Name().Name)
 }
 
-func encodeFuncName(m rs.Method) *ast.Ident {
+func encodeFuncName(m rs.Procedure) *ast.Ident {
 	return Id("Encode" + m.Name().Name + "Response")
 }
 
-func decodeFuncName(m rs.Method) *ast.Ident {
+func decodeFuncName(m rs.Procedure) *ast.Ident {
 	return Id("Decode" + m.Name().Name + "Request")
 }
 
 // xxx make generic?
-func called(m rs.Method, s rs.Struct, scope *ast.Scope, ctxName, spreadStruct string) *ast.AssignStmt {
+func called(m rs.Procedure, s rs.Struct, scope *ast.Scope, ctxName, spreadStruct string) *ast.AssignStmt {
 	resNamesExpr := []ast.Expr{}
 	for _, r := range m.ResultNames(scope) {
 		resNamesExpr = append(resNamesExpr, ast.Expr(r))
@@ -71,7 +71,7 @@ func called(m rs.Method, s rs.Struct, scope *ast.Scope, ctxName, spreadStruct st
 	}
 }
 
-func wrapResult(m rs.Method, results []ast.Expr) ast.Expr {
+func wrapResult(m rs.Procedure, results []ast.Expr) ast.Expr {
 	kvs := []ast.Expr{}
 
 	scope := rs.ScopeWith()
@@ -87,46 +87,46 @@ func wrapResult(m rs.Method, results []ast.Expr) ast.Expr {
 	}
 }
 
-func decoderFunc(t rs.ASTTemplate, m rs.Method) ast.Decl {
+func decoderFunc(t rs.ASTTemplate, m rs.Procedure) ast.Decl {
 	fn := t.FunctionDecl("DecodeExampleRequest")
 	fn.Name = decodeFuncName(m)
 	fn = rs.ReplaceIdent(fn, "ExampleRequest", requestStructName(m)).(*ast.FuncDecl)
 	return fn
 }
 
-func encoderFunc(t rs.ASTTemplate, m rs.Method) ast.Decl {
+func encoderFunc(t rs.ASTTemplate, m rs.Procedure) ast.Decl {
 	fn := t.FunctionDecl("EncodeExampleResponse")
 	fn.Name = encodeFuncName(m)
 	return fn
 }
 
-func endpointMakerName(m rs.Method) *ast.Ident {
+func endpointMakerName(m rs.Procedure) *ast.Ident {
 	return Id("make" + m.Name().Name + "Endpoint")
 }
 
-func requestStruct(m rs.Method) ast.Decl {
+func requestStruct(m rs.Procedure) ast.Decl {
 	return StructDecl(requestStructName(m), requestStructFields(m))
 }
 
-func responseStruct(m rs.Method) ast.Decl {
+func responseStruct(m rs.Procedure) ast.Decl {
 	return StructDecl(responseStructName(m), responseStructFields(m))
 }
 
-func requestStructName(m rs.Method) *ast.Ident {
+func requestStructName(m rs.Procedure) *ast.Ident {
 	return Id(Export(m.Name().Name) + "Request")
 }
 
-func requestStructFields(m rs.Method) *ast.FieldList {
+func requestStructFields(m rs.Procedure) *ast.FieldList {
 	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
 		return a.Distinguish(rs.ScopeWith()).Exported()
 	}, m.NonContextParams()...)
 }
 
-func responseStructName(m rs.Method) *ast.Ident {
+func responseStructName(m rs.Procedure) *ast.Ident {
 	return Id(Export(m.Name().Name) + "Response")
 }
 
-func responseStructFields(m rs.Method) *ast.FieldList {
+func responseStructFields(m rs.Procedure) *ast.FieldList {
 	return rs.MappedFieldList(func(a rs.Arg) *ast.Field {
 		return a.Distinguish(rs.ScopeWith()).Exported()
 	}, m.Results()...)

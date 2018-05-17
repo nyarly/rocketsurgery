@@ -10,7 +10,7 @@ type (
 	// An Interface describes a Go interface.
 	Interface interface {
 		// Methods returns a list of methods for this interface.
-		Methods() []Method
+		Methods() []Procedure
 		// Implementor returns a Struct suitable to use an an implementor of this
 		// interface.
 		Implementor() Struct
@@ -18,12 +18,12 @@ type (
 	// because "interface" is a keyword...
 	iface struct {
 		name, stubname, rcvrName *ast.Ident
-		methods                  []Method
+		methods                  []Procedure
 	}
 )
 
-func (i iface) Methods() []Method {
-	ms := []Method{}
+func (i iface) Methods() []Procedure {
+	ms := []Procedure{}
 	for _, m := range i.methods {
 		ms = append(ms, m)
 	}
